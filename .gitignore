@@ -1,0 +1,13 @@
+.env
+.venv
+
+*.pyc
+__pycache__/
+/__pycache__/
+
+*.csv
+*.exe
+*.xls
+*xlsx
+*.json
+*.pdf
