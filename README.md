@@ -63,6 +63,6 @@ OPENAI_API_KEY=sk-...
 2. 가상환경 실행 후, 필요한 라이브러리를 설치:
 ```bash
 pip install -r project/requirements.txt
-
+```
 3. Streamlit 앱을 실행:
 streamlit run project/streamlit_app.py
