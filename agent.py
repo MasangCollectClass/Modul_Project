@@ -4,11 +4,9 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from mbti_predictor import predict_from_texts
 from emotion import analyze_sentiment
-from counsel_gpt import generate_counseling_response
+from counsel import generate_counseling_response
 
-# -------------------------------
 # 모델 로딩
-# -------------------------------
 # 감정 분석 모델
 emotion_model = joblib.load("emotion_model.pkl")
 vectorizer_emotion = joblib.load("emotion_vectorizer.pkl")
@@ -32,9 +30,7 @@ idx2mbti = {
     12: "ISFJ", 13: "ESFJ", 14: "ISTJ", 15: "ESTJ"
 }
 
-# -------------------------------
 # 기능 함수
-# -------------------------------
 def predict_mbti_tool(user_inputs: list) -> str:
     if len(user_inputs) < 5:
         return "문장은 최소 5개 이상 필요합니다."
@@ -46,9 +42,8 @@ def predict_emotion_tool(user_text: str) -> str:
 def generate_counsel_tool(user_text: str, mbti: str, song: str) -> str:
     return generate_counseling_response(user_text, mbti, song)
 
-# -------------------------------
+
 # Agent 도구 리스트
-# -------------------------------
 mbti_tools = [
     {
         "type": "function",
@@ -100,9 +95,7 @@ mbti_tools = [
     }
 ]
 
-# -------------------------------
-# 메인
-# -------------------------------
+# 테스트
 if __name__ == '__main__':
     # 예시 테스트 흐름
     user_inputs = [
