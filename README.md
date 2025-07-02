@@ -1,56 +1,69 @@
 # Modul_Project
 
-MBTI 예측, 감정 분석, GPT 상담을 통합한 스트림릿 기반 웹 애플리케이션입니다.  
-FastAPI 백엔드와 연동되어 사용자와의 대화를 통해 성격유형과 감정을 분석하고,  
-이에 기반한 맞춤형 상담 응답을 제공합니다.
+GPT 기반 MBTI 예측 및 감정 분석을 활용한 AI 상담 챗봇 웹 애플리케이션.  
+Streamlit을 기반으로 한 프론트엔드와 백엔드 통합 구조로 구성되어 있으며, 사용자 입력을 통해 MBTI를 예측하고 감정 상태를 분석한 뒤, 적절한 상담 메시지를 제공.
+
 
 ---
 
-## 📁 디렉터리 구조
+## 디렉터리 구조
 ```
 Modul_Project/
-│
-├── .env # 환경변수 파일 (API 키 등)
-├── .gitignore # Git 추적 제외 파일 목록
+├── .env # 환경 변수 파일 (API 키 등)
+├── .gitignore # Git 추적 제외 항목
 ├── .streamlit/ # Streamlit 설정 파일
 ├── .venv/ # 가상환경 폴더
 ├── README.md # 프로젝트 설명 파일
-├── module.ipynb # 개발/분석용 노트북
+├── module.ipynb # 분석 및 실험용 노트북
+├── requirements.txt # 루트 의존성 파일
+│
 ├── project/ # 메인 프로젝트 폴더
-│ ├── pycache/ # 파이썬 캐시 파일
-│ ├── agent.py # GPT 기반 챗봇 에이전트 로직
-│ ├── cards.py # 스트림릿 UI 카드 구성 (이전 버전)
-│ ├── cards2.py # 스트림릿 UI 카드 구성 (최신 버전)
-│ ├── counsel.py # 상담 응답 생성 로직
+│ ├── pycache/ # 파이썬 캐시
+│ ├── agent.py # GPT 기반 상담 에이전트 로직
+│ ├── mbti_predictor.py # MBTI 예측 모델 로직
+│ ├── counsel.py # 상담 응답 생성 기능
 │ ├── emotion.py # 감정 분석 기능
+│ ├── cards.py # UI 카드 컴포넌트 (구버전)
+│ ├── cards2.py # UI 카드 컴포넌트 (최신)
 │ ├── home.py # 홈 화면 구성
-│ ├── images/ # 이미지 리소스 폴더
-│ ├── models/ # 학습된 MBTI 분류 모델 저장 폴더
-│ │ └── (6개 모델 파일)
-│ ├── pages/ # 스트림릿 페이지 구성 폴더
-│ │ ├── chat.py # 채팅 페이지
-│ │ ├── mbti_list.py # MBTI 유형별 설명 페이지
-│ │ └── recommand.py # 콘텐츠 추천 페이지
-│ ├── requirements.txt # 필요한 라이브러리 목록
-│ ├── static/ # 정적 파일 (이미지, 아이콘 등)
-│ │ └── (8개 파일)
-│ ├── streamlit_app.py # 스트림릿 앱의 메인 진입점
-│ └── tokenizers/ # 텍스트 전처리용 토크나이저 파일
-│ └── (6개 파일)
-└── requirements.txt # 루트에서도 종속성 관리 가능
+│ ├── streamlit_app.py # 메인 Streamlit 앱 진입점
+│ ├── requirements.txt # 프로젝트 전용 의존성 목록
+│ │
+│ ├── models/ # 학습된 MBTI 분류 모델 폴더
+│ │ ├── ei_bilstm_model2.h5
+│ │ ├── ns_bilstm_model2.h5
+│ │ ├── tf_bilstm_model.h5
+│ │ └── jp_bilstm_model.h5
+│ │
+│ ├── tokenizers/ # 토크나이저 파일 폴더
+│ │ ├── ei_tokenizer2.pkl
+│ │ ├── ns_tokenizer2.pkl
+│ │ ├── tf_tokenizer.pkl
+│ │ └── jp_tokenizer.pkl
+│ │
+│ ├── static/ # 정적 파일 (아이콘, CSS 등)
+│ ├── images/ # 이미지 리소스
+│ └── pages/ # Streamlit 페이지
+│ ├── chat.py # 채팅 페이지
+│ ├── mbti_list.py # MBTI 유형 설명 페이지
+│ └── recommand.py # 콘텐츠 추천 페이지
 ```
+
 ---
+## 주요 기능
+- **MBTI 4지표 기반 분류기**로 사용자 텍스트 입력에 대한 성격유형 예측
+- **감정 분석 모델**을 통해 긍정/부정 상태 분석
+- **GPT 상담 시스템**을 이용한 맞춤형 대화 응답 생성
+- Streamlit 기반의 직관적인 웹 UI 제공
+- 여러 Streamlit 페이지 간 네비게이션 지원
 
 ## 실행 방법
+1. 프로젝트 루트에 `.env` 파일을 생성하고 OpenAI API 키를 등록:
+OPENAI_API_KEY=sk-...
 
-1. 가상환경 활성화 (이미 `.venv`가 있다면):
-   ```bash
-   source .venv/Scripts/activate     # Windows 기준
-
-2. 필요한 패키지 설치:
+2. 가상환경 실행 후, 필요한 라이브러리를 설치:
+```bash
 pip install -r project/requirements.txt
 
-3. 환경변수 설정 (.env 파일에 OpenAI 키 등 포함)
-
-4. 애플리케이션 실행:
+3. Streamlit 앱을 실행:
 streamlit run project/streamlit_app.py
