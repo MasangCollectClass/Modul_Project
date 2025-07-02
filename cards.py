@@ -6,9 +6,8 @@ import streamlit as st
 # 채팅
 def chat_card():
     st.page_link("chat.py", label="Chat", icon=":material/chat:")
-    st.chat_message("user").write("상담해주세요")
-    st.chat_message("assistant").write("언제든지요!")
-    st.chat_input("Type something")
+    st.chat_message("assistant").write("저는 여러분들을 위한 상담사 입니다! 여러분들의 입력을 분석하여 원하시는 성격 유형에 맞게 답변드리겠습니다!")
+    st.chat_input("시작..")
 
 # mbti 리스트
 def mbti_list():
