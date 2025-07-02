@@ -26,12 +26,12 @@ def agent_chat(user_input: str) -> str:
         if len(session_inputs) < 5:
             return f"현재 입력하신 문장은 총 {len(session_inputs)}개입니다. 5개가 되면 MBTI를 예측합니다."
         
-        # 5문장 누적 완료 → MBTI 예측
+        # 5문장 누적 완료/MBTI 예측
         combined_text = " ".join(session_inputs)
         mbti_state = predict_mbti(combined_text)
         return f"MBTI 예측이 완료되었습니다: {mbti_state}\n이제 고민을 말씀해 주세요. 감정 분석과 상담이 진행됩니다."
 
-    # MBTI 예측이 끝난 후 → 감정 분석 + 상담 진행
+    # MBTI 예측이 끝난 후 감정 분석/상담 진행
     emotion = analyze_sentiment(user_input)
     counsel_response = generate_counseling_response(user_input, mbti_state, recommended_song)
     return f"[감정 분석 결과: {emotion}]\n{counsel_response}"
