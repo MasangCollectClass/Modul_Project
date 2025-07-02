@@ -1,6 +1,6 @@
 import streamlit as st
 
-# 사이드메뉴 하단에 표시되는 작은 미리보기 칸 입니다.
+# 사이드메뉴 하단과 홈화면에 표시되는 작은 미리보기 칸 입니다.
 
 def chat_card():
     st.page_link("chat.py", label="Chat", icon=":material/chat:")

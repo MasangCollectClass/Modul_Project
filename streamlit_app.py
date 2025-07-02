@@ -6,6 +6,7 @@ from cards import (
     mbti_list,
 )
 
+# 한번만 초기화 작업수행 (변화 상태 유지용)
 if "init" not in st.session_state:
     st.session_state.init = True
 
@@ -45,6 +46,7 @@ with st.sidebar.container(height=310):
             "해당 페이지의 썸네일이 표시됩니다."
         )
 
+# 사이드바 하단 캡션
 st.sidebar.caption(
     "SK 쉴더스 26기 TEAM 6" 
     "mbti 상담소 마음 수거함 입니다"
