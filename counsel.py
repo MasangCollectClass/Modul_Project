@@ -1,10 +1,14 @@
 import os
 import openai
 from dotenv import load_dotenv
+import pickle
+import tensorflow as tf
+from openai import OpenAI
 
 # 환경 변수 로드
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=api_key)
 
 # 사용자 MBTI별로 궁합이 잘 맞는 MBTI 유형 매핑
 MBTI_COMPATIBILITY_MAP = {
@@ -172,7 +176,7 @@ def generate_counseling_response(user_input: str, user_mbti: str, recommended_so
     user_prompt = f'고민 내용: "{user_input}"\n사용자 MBTI: {mbti}'
 
     # GPT 호출
-    response = openai.ChatCompletion.create(
+    response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
             {"role": "system", "content": system_prompt},
@@ -181,9 +185,7 @@ def generate_counseling_response(user_input: str, user_mbti: str, recommended_so
         temperature=0.7,
         max_tokens=700
     )
-
-    return response.choices[0].message["content"].strip()
-
+    return response.choices[0].message.content.strip()
 def summarize_counseling_response(response_text: str) -> str:
     """
     목적:
