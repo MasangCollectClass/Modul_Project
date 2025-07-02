@@ -1,6 +1,7 @@
 import streamlit as st
 from cards import (
     chat_card,
+    recommand,
     mbti_list,
 )
 
@@ -16,3 +17,7 @@ with cols[0].container(height=310):
     chat_card()
 with cols[1].container(height=310):
     mbti_list()
+
+cols2 = st.columns(2)
+with cols2[0].container(height=310):
+    recommand()

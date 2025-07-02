@@ -1,9 +1,8 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
 from cards import (
     chat_card,
     mbti_list,
+    recommand
 )
 
 # 한번만 초기화 작업수행 (변화 상태 유지용)
@@ -27,6 +26,11 @@ pages = [
         title="MBTI List",
         icon=":material/favorite:"
     ),
+    st.Page(
+        "recommand.py",
+        title="Recommand",
+        icon=":material/thumb_up:"
+    ),
 ]
 
 page = st.navigation(pages)
@@ -38,6 +42,8 @@ with st.sidebar.container(height=310):
         chat_card()
     elif page.title == "MBTI List":
         mbti_list()
+    elif page.title == "Recommand":
+        recommand()
     else:
         st.page_link("home.py", label="Home", icon=":material/home:")
         st.write("마상수거반 홈페이지 입니다.")
@@ -48,6 +54,6 @@ with st.sidebar.container(height=310):
 
 # 사이드바 하단 캡션
 st.sidebar.caption(
-    "SK 쉴더스 26기 TEAM 6" 
+    "SK 쉴더스 26기 TEAM 6    " 
     "mbti 상담소 마음 수거함 입니다"
 )
