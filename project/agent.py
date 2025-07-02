@@ -4,6 +4,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import OpenAI
 
+# MBTI 예측 모듈 임포트
+from mbti_predictor import predict_mbti
+
 # 프로젝트 루트 경로 추가
 project_root = Path(__file__).parent.absolute()
 sys.path.append(str(project_root))
@@ -30,33 +33,13 @@ recommended_song = "IU - 밤편지"
 
 def analyze_mbti(texts: list) -> str:
     """
-    OpenAI API를 사용하여 텍스트 목록을 분석하여 MBTI 유형을 예측합니다.
+    mbti_predictor를 사용하여 텍스트 목록을 분석하여 MBTI 유형을 예측합니다.
     """
     try:
         # 텍스트를 하나의 문자열로 결합
         combined_text = " ".join(texts)
-        
-        # OpenAI API 호출
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "당신은 MBTI 전문가입니다. 주어진 텍스트를 분석하여 가장 적합한 MBTI 유형을 예측해주세요. 16가지 MBTI 유형 중 하나만 대문자로 답변해주세요."},
-                {"role": "user", "content": f"다음 사용자의 텍스트를 분석하여 MBTI 유형을 예측해주세요.\n\n{combined_text}"}
-            ],
-            temperature=0.3,
-            max_tokens=10
-        )
-        
-        # 응답에서 MBTI 추출 (대문자로 변환하고, 16가지 MBTI 중 하나인지 확인)
-        mbti_types = ["ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP",
-                     "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ"]
-        predicted = response.choices[0].message.content.strip().upper()
-        
-        # 유효한 MBTI인지 확인
-        if predicted in mbti_types:
-            return predicted
-        return "INTP"  # 기본값
-        
+        # mbti_predictor를 사용하여 MBTI 예측
+        return predict_mbti(combined_text)
     except Exception as e:
         print(f"MBTI 분석 중 오류 발생: {e}")
         return "INTP"  # 오류 시 기본값
