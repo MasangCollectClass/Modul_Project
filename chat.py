@@ -1,16 +1,57 @@
 import streamlit as st
+from openai import OpenAI
+from dotenv import load_dotenv
+import os
+import json
 
-st.header("Chat elements")
+load_dotenv()
 
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = [{"role": "assistant", "content": "Hello! How can I assist you today?"}]
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-for message in st.session_state.chat_history:
-    st.chat_message(message["role"]).markdown(message["content"])
+client = OpenAI(api_key=OPENAI_API_KEY)
 
-if prompt := st.chat_input("Send a message"):
-    st.session_state.chat_history.append({"role": "user", "content": prompt})
-    st.chat_message("user").markdown(prompt)
-    assistant_response_generator = [character for character in f"Echo: {prompt}"]
-    response = st.chat_message("assistant").write_stream(assistant_response_generator)
-    st.session_state.chat_history.append({"role": "assistant", "content": response})
+st.title('마음 상담소')
+
+# st.session_state : 세션에 키-값 형식으로 데이터를 저장하는 변수
+# openai_model => str , message => []
+if 'openai_model' not in st.session_state:
+    st.session_state.openai_model = 'gpt-4.1'
+
+# 메세지 세션 초기화
+if 'message' not in st.session_state:
+    st.session_state.message = []
+
+# 기존의 메세지가 있다면 출력
+for msg in st.session_state.message:
+    with st.chat_message(msg['role']):
+        st.markdown(msg['content'])
+
+# prompt => 사용자 입력창
+if prompt := st.chat_input('메세지를 입력하세요'):
+    # messages => [], 대화 내용 추가
+    st.session_state.message.append({
+        'role': 'user',
+        'content': prompt
+    })
+
+    with st.chat_message('user'):
+        st.markdown(prompt)
+
+    with st.chat_message('assistant'):
+        stream = client.chat.completions.create(
+            model=st.session_state.openai_model,
+            messages=[
+                {
+                    'role': m['role'],
+                    'content': m['content']
+                }
+                for m in st.session_state.message
+            ],
+            stream=True
+        )
+        response = st.write_stream(stream)
+
+    st.session_state.message.append({
+        'role': 'assistant',
+        'content': response
+    })  
