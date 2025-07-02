@@ -9,7 +9,6 @@ Streamlit을 기반으로 한 프론트엔드와 백엔드 통합 구조로 구�
 ## 디렉터리 구조
 ```
 Modul_Project/
-├── .env # 환경 변수 파일 (API 키 등)
 ├── .gitignore # Git 추적 제외 항목
 ├── .streamlit/ # Streamlit 설정 파일
 ├── .venv/ # 가상환경 폴더
