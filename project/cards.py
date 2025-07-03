@@ -6,8 +6,9 @@ import streamlit as st
 # 채팅
 def chat_card():
     st.page_link("chat.py", label="Chat", icon=":material/chat:")
-    st.chat_message("assistant").write("저는 여러분들을 위한 상담사 입니다! 여러분들의 입력을 분석하여 원하시는 성격 유형에 맞게 답변드리겠습니다!")
-    st.chat_input("시작..")
+    st.chat_message("assistant").write("입력하신 문장을 기반으로 MBTI를 예측하고, 감정 분석 및 맞춤형 상담을 진행해 드립니다.")
+    st.caption("10개의 문장을 입력하시면 상담이 시작됩니다.")
+    st.chat_input("지금 바로 시작해보세요")
 
 # mbti 리스트
 def mbti_list():
@@ -41,5 +42,12 @@ def mbti_list():
 # 추천 리스트
 def recommand():
     st.page_link("recommand.py", label="Recommand", icon=":material/thumb_up:")
-    st.container(border=True).video("https://www.youtube.com/watch?v=-xDt6P58tt0&list=RD-xDt6P58tt0&start_radio=1", autoplay=False)
-    st.container(border=True).video("https://www.youtube.com/watch?v=exJF_Y3QFbg", autoplay=False)
+    with st.container(border=True):
+        st.markdown("### 🎵 추천 음악")
+        st.caption("감정을 어루만져 줄 음악을 추천합니다.")
+        st.video("https://www.youtube.com/watch?v=-xDt6P58tt0&list=RD-xDt6P58tt0&start_radio=1", autoplay=False)
+
+    with st.container(border=True):
+        st.markdown("### ✈️ 감성 여행지")
+        st.caption("지친 마음을 달래 줄 추천 여행지 영상입니다.")
+        st.video("https://www.youtube.com/watch?v=exJF_Y3QFbg", autoplay=False)

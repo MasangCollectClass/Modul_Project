@@ -1,14 +1,15 @@
 import streamlit as st
-from cards import (
+from imsyhe.cards2 import (
     chat_card,
     recommand,
     mbti_list,
 )
 
-st.title("마상 수거반")
+st.title("마음 수거함 홈페이지 입니다")
 
 st.markdown(
-    "안녕하세요 마상 수거반입니다. 당신의 감정을 마음껏 표현해 주세요"
+    "MBTI 유형을 기반으로 한 심리 상담 서비스입니다." 
+    "당신의 감정과 고민을 편안하게 나눠보세요."
 )
 
 # 홈 화면에 띄울 미니카드
