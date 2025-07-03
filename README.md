@@ -12,7 +12,7 @@ Modul_Project/
 ├── .streamlit/ # Streamlit 설정 파일
 ├── .venv/ # 가상환경 폴더
 ├── README.md # 프로젝트 설명 파일
-├── module.ipynb # 분석 및 실험용 노트북
+├── module.ipynb # 분석 및 실험용 모듈
 ├── requirements.txt # 루트 의존성 파일
 │
 ├── project/ # 메인 프로젝트 폴더
