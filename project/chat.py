@@ -7,7 +7,7 @@ from typing import List, Dict, Any
 # 프로젝트 루트 경로 추가
 project_root = Path(__file__).parent.absolute()
 sys.path.append(str(project_root))
-from agent import agent_chat, conversation_manager
+from mbti_counsel_agent import agent_chat, conversation_manager     # agent에서 mbti_counsel_agent로 변경
 
 st.set_page_config(page_title="Chat", page_icon="💬")
 st.title('MBTI 분석 챗봇')
@@ -30,7 +30,9 @@ with st.sidebar:
         st.write("이제 고민을 말씀해 주시면 상담을 도와드리겠습니다.")
     else:
         # 현재까지의 사용자 메시지 수 계산 (현재 입력 전까지)
-        user_message_count = len([msg for msg in st.session_state.chat_history if msg[0] == "user"])
+        # conversation_manager에서 직접 사용자 메시지 수 가져오기
+        user_message_count = conversation_manager.get_user_message_count()      # 수정된 코드(25.07.03 18:52)
+        # user_message_count = len([msg for msg in st.session_state.chat_history if msg[0] == "user"])  # 기존 코드
         st.info(f"MBTI 분석 중... ({min(user_message_count, 10)}/10)")
         progress_value = min(user_message_count / 10, 1.0)
         st.progress(progress_value)
@@ -42,7 +44,7 @@ with st.sidebar:
         # 세션 상태 초기화
         st.session_state.clear()
         # conversation_manager도 초기화
-        from agent import conversation_manager
+        from mbti_counsel_agent import conversation_manager     # agent에서 mbti_counsel_agent로 변경
         conversation_manager.messages = []
         conversation_manager.mbti = None
         conversation_manager.token_count = 0
@@ -77,8 +79,10 @@ if prompt := st.chat_input("무엇이든 말씀해 주세요..." if not st.sessi
         st.write(prompt)
     
     # 채팅 응답 생성 (이전 대화 맥락은 agent_chat 내부에서 처리)
-    response, is_mbti_analyzed = agent_chat(prompt)
-    
+    # response, is_mbti_analyzed = agent_chat(prompt)   # 기존 코드
+    response = agent_chat(prompt)                     # 수정된 코드(25.07.03 18:52)
+    is_mbti_analyzed = conversation_manager.get_mbti() is not None
+
     # MBTI 분석 완료 상태 업데이트
     st.session_state.mbti_detected = is_mbti_analyzed
     
