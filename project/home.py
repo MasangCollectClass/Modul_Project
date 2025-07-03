@@ -1,5 +1,5 @@
 import streamlit as st
-from imsyhe.cards2 import (
+from cards import (
     chat_card,
     recommand,
     mbti_list,
