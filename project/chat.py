@@ -19,6 +19,14 @@ if 'chat_history' not in st.session_state:
     st.session_state.mbti_detected = False
     st.session_state.mbti_type = None
     st.session_state.conversation_id = None  # 대화 ID (필요시 사용)
+    
+    # 첫 번째 MBTI 분석 질문 추가
+    first_question = "안녕하세요! MBTI 분석을 도와드리겠습니다.\n\n" \
+                     "자, 첫 번째 질문이에요.\n" \
+                     "주말에 시간이 생기면 주로 무엇을 하시나요? (예: 집에서 휴식하기, 친구 만나기, 새로운 취미 활동하기 등)"
+    
+    st.session_state.chat_history.append(("assistant", first_question))
+    conversation_manager.add_message("assistant", first_question)
 
 # 사이드바 상태 표시
 with st.sidebar:

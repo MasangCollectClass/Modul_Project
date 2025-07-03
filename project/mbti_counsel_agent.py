@@ -84,7 +84,7 @@ class ConversationManager:
             return True
             
         # 간단한 키워드 기반 판단
-        new_topic_keywords = ["다른", "새로운", "다시", "추가로", "그런데", "아니"]         # 키워드 목록 개선 필요
+        new_topic_keywords = ["다른", "새로운", "다시", "추가로", "그런데", "아니"]     # 키워드 개선 필요함..!
         if any(keyword in user_input for keyword in new_topic_keywords):
             return True
             
@@ -137,7 +137,7 @@ def generate_mbti_question(previous_messages: List[str]) -> str:
             model=MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7,
-            max_tokens=100
+            max_tokens=150
         )
         return response.choices[0].message.content
     except Exception as e:
@@ -212,9 +212,16 @@ def agent_chat(user_input: str) -> str:
             
             # 3-1. 충분한 메시지가 쌓이지 않은 경우
             if messages_count < 10:
-                progress_msg = f"MBTI 분석을 위해 {messages_count}/10개의 문장이 입력되었습니다. {remaining}개 더 입력해주세요."
-                conversation_manager.add_message("assistant", progress_msg)
-                return progress_msg
+                # 진행 상황 안내 메시지
+                progress_msg = f"[진행 상황: {messages_count}/10] MBTI 분석을 위해 {remaining}개 더 입력해주세요."
+                
+                # MBTI 분석을 위한 질문 생성 (이미 진행 상황을 포함)
+                mbti_question = generate_mbti_question(user_messages)
+                
+                # 진행 상황과 질문을 결합하여 반환
+                response = f"{progress_msg}\n\n{mbti_question}"
+                conversation_manager.add_message("assistant", response)
+                return response
             
             # 3-2. MBTI 분석 수행
             else:
