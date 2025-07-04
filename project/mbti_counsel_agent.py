@@ -7,6 +7,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import OpenAI
 
+
 # 환경 변수 로드
 project_root = Path(__file__).parent.absolute()
 env_path = project_root / '.env'
@@ -262,8 +263,8 @@ def agent_chat(user_input: str) -> str:
                         10  # 최대 10개 질문
                     )
             
-            # 3-1. 충분한 메시지가 쌓이지 않은 경우
-            if len(user_messages) < 10:
+            # 3-1. 충분한 응답이 쌓이지 않은 경우 (최소 10개 필요)
+            if conversation_manager.last_question_index < 10:
                 # 진행 상황 안내 메시지 (실제 답변한 질문 수 기준)
                 current_progress = min(conversation_manager.last_question_index, 10)
                 remaining = max(0, 10 - current_progress)
@@ -287,18 +288,24 @@ def agent_chat(user_input: str) -> str:
                 conversation_manager.clarifying_question = False  # 명확한 질문 플래그 초기화
                 return response
             
-            # 3-2. MBTI 분석 수행
+            # 3-2. 충분한 응답이 쌓인 경우 MBTI 분석 수행
             else:
-                user_texts = user_messages[-10:]  # 최근 10개 메시지만 사용
-                mbti = predict_mbti(" ".join(user_texts))
-                conversation_manager.set_mbti(mbti)
-                
-                welcome_msg = (
-                    f"MBTI 분석이 완료되었습니다! 당신의 MBTI는 {mbti}로 보입니다.\n"
-                    "이제 고민을 말씀해 주시면 감정 분석과 상담을 도와드리겠습니다."
-                )
-                conversation_manager.add_message("assistant", welcome_msg)
-                return welcome_msg
+                # 최소 10개의 유효한 응답이 있는지 다시 확인
+                if conversation_manager.last_question_index >= 10:
+                    user_texts = user_messages[-10:]  # 최근 10개 메시지만 사용
+                    mbti = predict_mbti(" ".join(user_texts))
+                    conversation_manager.set_mbti(mbti)
+                    
+                    welcome_msg = (
+                        f"MBTI 분석이 완료되었습니다! 당신의 MBTI는 {mbti}로 보입니다.\n"
+                        "이제 고민을 말씀해 주시면 감정 분석과 상담을 도와드리겠습니다."
+                    )
+                    conversation_manager.add_message("assistant", welcome_msg)
+                    return welcome_msg
+                else:
+                    # 아직 충분한 응답이 없는 경우 (방어적 프로그래밍)
+                    remaining = 10 - conversation_manager.last_question_index
+                    return f"MBTI 분석을 위해 {remaining}개 더 입력해 주세요."
         
         # 4. MBTI 분석 완료 후 상담 진행
         current_concern = conversation_manager.current_concern
