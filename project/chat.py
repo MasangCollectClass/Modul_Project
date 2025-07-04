@@ -40,9 +40,6 @@ def initialize_session():
         conversation_manager.mbti = None
         conversation_manager.token_count = 0
         conversation_manager.last_question_index = 0  # 첫 번째 질문 시작을 1로 표시하기 위해 0으로 초기화
-        
-        # conversation_manager 초기화
-        from mbti_counsel_agent import conversation_manager
 
 def get_initial_greeting(mbti_type: Optional[str] = None) -> str:
     """MBTI 유형에 따른 초기 인사말을 반환합니다."""

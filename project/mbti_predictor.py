@@ -4,17 +4,17 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 # ============ 설정 ============
 MODEL_PATHS = {
-    "ei": ("project/models/ei_bilstm_model2.h5", "project/tokenizers/ei_tokenizer2.pkl"),
-    "ns": ("project/models/ns_bilstm_model2.h5", "project/tokenizers/ns_tokenizer2.pkl"),
-    "tf": ("project/models/tf_bilstm_model2.h5", "project/tokenizers/tf_tokenizer2.pkl"),
-    "jp": ("project/models/jp_final.h5", "project/tokenizers/jp_final.pkl"),
+    "ei": ("models/ei_bilstm_model2.h5", "tokenizers/ei_tokenizer2.pkl"),
+    "ns": ("models/ns_bilstm_model2.h5", "tokenizers/ns_tokenizer2.pkl"),
+    "tf": ("models/tf_bilstm_model2.h5", "tokenizers/tf_tokenizer2.pkl"),
+    "jp": ("models/jp_final.h5", "tokenizers/jp_final.pkl")
 }
 THRESHOLDS = {"ei": 0.40, "ns": 0.85, "tf": 0.62, "jp": 0.50}
 LABEL_PAIRS = {
     "ei": ("E", "I"),
     "ns": ("N", "S"),
     "tf": ("T", "F"),
-    "jp": ("J", "P"),
+    "jp": ("J", "P")
 }
 MAX_LEN = 300
 
