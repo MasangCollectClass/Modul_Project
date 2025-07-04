@@ -7,7 +7,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import OpenAI
 
-
 # 환경 변수 로드
 project_root = Path(__file__).parent.absolute()
 env_path = project_root / '.env'
@@ -34,6 +33,8 @@ except KeyError:
 from mbti_predictor import predict_mbti
 from emotion import analyze_sentiment
 from counsel import generate_counseling_response
+from music import recommend_music_by_emotion  # 음악 추천 모듈 추가
+from travel import recommend_places_by_mbti  # 여행지 추천 모듈 추가
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -60,22 +61,32 @@ class ConversationManager:
         if not self.messages or len(self.messages) <= 1:  # 초기 메시지만 있는 경우
             return 0
             
-        # 명확한 질문을 요청하는 메시지는 카운트하지 않음
-        clarification_keywords = ["이해가 안돼", "무슨 말이야", "다시 말해줘", "설명해줘", "질문을 모르겠어", "무슨 상황"]
-        
-        # 모든 사용자 메시지 중에서 유효한 응답만 필터링
-        valid_responses = [
-            msg for msg in self.messages 
-            if msg["role"] == "user" and 
-            not any(keyword in msg["content"].lower() for keyword in clarification_keywords)
+        # 명확한 질문을 요청하는 메시지 패턴
+        clarification_keywords = [
+            "이해가 안돼", "무슨 말이야", "다시 말해줘", 
+            "설명해줘", "질문을 모르겠어", "무슨 상황", 
+            "무슨 뜻이야", "다시 질문해줘", "다시 말씀해 주세요",
+            "다시 한번 말씀해 주시겠어요?", "다시 말씀해 주실 수 있을까요?"
         ]
         
-        # 명확한 질문을 요청한 경우에는 진행 상황 유지 (클라이언트 측에서만 표시용)
-        if self.clarifying_question:
-            return max(0, self.last_question_index)  # 최소 0 반환
+        # 모든 사용자 메시지 가져오기
+        user_messages = [msg for msg in self.messages if msg["role"] == "user"]
+        
+        # 유효한 응답만 필터링 (명확한 질문을 요청하는 메시지 제외)
+        valid_responses = []
+        for msg in user_messages:
+            content = msg["content"].lower()
+            # 명확한 질문을 요청하는 메시지가 아닌 경우에만 카운트
+            if not any(keyword in content for keyword in clarification_keywords):
+                valid_responses.append(msg)
+        
+        # 마지막 응답이 명확한 질문을 요청하는 경우, 진행 상황 유지
+        if user_messages and any(keyword in user_messages[-1]["content"].lower() 
+                               for keyword in clarification_keywords):
+            return max(0, len(valid_responses) - 1)  # 현재 메시지는 제외
             
-        # 진행 상황 반환 (0부터 시작, last_question_index를 우선 사용)
-        return min(max(0, self.last_question_index), 10)
+        # 진행 상황 반환 (최대 10)
+        return min(len(valid_responses), 10)
 
     def add_message(self, role: str, content: str) -> None:
         """대화 메시지를 추가하고 토큰 수를 업데이트합니다."""
@@ -167,25 +178,6 @@ def generate_mbti_question(previous_messages: List[str]) -> str:
         print(f"MBTI 질문 생성 중 오류: {e}")
         return "MBTI를 더 잘 이해하기 위해 더 많은 대화를 나눠볼까요?"
 
-def generate_counseling_response(user_input: str, mbti: str, emotion: str) -> str:
-    """상담 응답을 생성합니다."""
-    prompt = f"""
-    당신은 {mbti} 유형의 사용자를 위한 전문 상담사입니다.
-    사용자의 현재 감정: {emotion}
-    
-    다음 사용자 메시지에 공감하고, {mbti} 유형에 적합한 조언을 해주세요.
-    사용자: {user_input}
-    """
-    
-    try:
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        return "이해하는 데 어려움이 있네요. 조금 더 자세히 말씀해 주시겠어요?"
 
 def continue_counseling(user_input: str, context: List[Dict[str, str]], concern: dict, mbti: str) -> str:
     """이미 분석된 고민에 대한 후속 대화를 처리합니다."""
@@ -219,6 +211,17 @@ def agent_chat(user_input: str) -> str:
     """
     global conversation_manager
     
+    # 여행지 추천 요청 처리
+    travel_keywords = ["여행지 추천", "여행 가고 싶어", "여행 갈 곳 추천", "어디로 여행가지", "여행지 추천해줘"]
+    if any(keyword in user_input for keyword in travel_keywords):
+        mbti = conversation_manager.get_mbti()
+        if not mbti:
+            return "MBTI 분석이 아직 완료되지 않았어요. 먼저 MBTI 분석을 완료해주세요."
+            
+        # 여행지 추천 결과 가져오기
+        travel_recommendations = recommend_places_by_mbti(mbti)
+        return travel_recommendations
+
     try:
         # 1. 새로운 고민인지 확인
         if conversation_manager.is_new_concern(user_input):
@@ -263,12 +266,12 @@ def agent_chat(user_input: str) -> str:
                         10  # 최대 10개 질문
                     )
             
-            # 3-1. 충분한 응답이 쌓이지 않은 경우 (최소 10개 필요)
-            if conversation_manager.last_question_index < 10:
-                # 진행 상황 안내 메시지 (실제 답변한 질문 수 기준)
-                current_progress = min(conversation_manager.last_question_index, 10)
-                remaining = max(0, 10 - current_progress)
-                progress_msg = f"[진행 상황: {current_progress}/10] MBTI 분석을 위해 {remaining}개 더 입력해주세요."
+            # 3-1. 충분한 메시지가 쌓이지 않은 경우
+            valid_message_count = conversation_manager.get_user_message_count()
+            if valid_message_count < 10:
+                # 진행 상황 안내 메시지 (유효한 답변 수 기준)
+                remaining = 10 - valid_message_count
+                progress_msg = f"[진행 상황: {valid_message_count}/10] MBTI 분석을 위해 {remaining}개 더 입력해주세요."
                 
                 # MBTI 분석을 위한 질문 생성 (이미 생성된 질문이 없을 때만 새로 생성)
                 if not conversation_manager.current_question or not conversation_manager.clarifying_question:
@@ -288,24 +291,36 @@ def agent_chat(user_input: str) -> str:
                 conversation_manager.clarifying_question = False  # 명확한 질문 플래그 초기화
                 return response
             
-            # 3-2. 충분한 응답이 쌓인 경우 MBTI 분석 수행
+            # 3-2. MBTI 분석 수행 (유효한 메시지가 10개 이상인 경우)
             else:
-                # 최소 10개의 유효한 응답이 있는지 다시 확인
-                if conversation_manager.last_question_index >= 10:
-                    user_texts = user_messages[-10:]  # 최근 10개 메시지만 사용
-                    mbti = predict_mbti(" ".join(user_texts))
-                    conversation_manager.set_mbti(mbti)
-                    
-                    welcome_msg = (
-                        f"MBTI 분석이 완료되었습니다! 당신의 MBTI는 {mbti}로 보입니다.\n"
-                        "이제 고민을 말씀해 주시면 감정 분석과 상담을 도와드리겠습니다."
-                    )
-                    conversation_manager.add_message("assistant", welcome_msg)
-                    return welcome_msg
-                else:
-                    # 아직 충분한 응답이 없는 경우 (방어적 프로그래밍)
-                    remaining = 10 - conversation_manager.last_question_index
-                    return f"MBTI 분석을 위해 {remaining}개 더 입력해 주세요."
+                # 유효한 메시지만 필터링 (명확한 질문 요청 메시지 제외)
+                clarification_keywords = ["이해가 안돼", "무슨 말이야", "다시 말해줘", "설명해줘", "질문을 모르겠어", "무슨 상황"]
+                valid_user_messages = [
+                    msg for msg in user_messages 
+                    if not any(keyword in msg.lower() for keyword in clarification_keywords)
+                ][-10:]  # 최근 10개 유효한 메시지만 사용
+                
+                if len(valid_user_messages) < 10:
+                    # 충분한 유효한 메시지가 없으면 계속 진행
+                    remaining = 10 - len(valid_user_messages)
+                    progress_msg = f"[진행 상황: {len(valid_user_messages)}/10] MBTI 분석을 위해 {remaining}개 더 입력해주세요."
+                    mbti_question = generate_mbti_question(valid_user_messages)
+                    conversation_manager.current_question = mbti_question
+                    response = f"{progress_msg}\n\n{mbti_question}"
+                    conversation_manager.add_message("assistant", response)
+                    return response
+                
+                user_texts = valid_user_messages  # 유효한 메시지만 사용
+                mbti = predict_mbti(" ".join(user_texts))
+                conversation_manager.set_mbti(mbti)
+                
+                welcome_msg = (
+                    f"MBTI 분석이 완료되었습니다! 당신의 MBTI는 {mbti}로 보입니다.\n"
+                    "이제 고민을 말씀해 주시면 감정 분석과 상담을 도와드리겠습니다.\n\n"
+                    f"🌍 여행지 추천을 원하시면 '여행지 추천'이라고 말씀해 주세요!"
+                )
+                conversation_manager.add_message("assistant", welcome_msg)
+                return welcome_msg
         
         # 4. MBTI 분석 완료 후 상담 진행
         current_concern = conversation_manager.current_concern
@@ -314,19 +329,22 @@ def agent_chat(user_input: str) -> str:
         if not conversation_manager.emotion_analyzed:
             emotion = conversation_manager.analyze_concern_emotion(user_input)
             mbti = conversation_manager.get_mbti() or "UNKNOWN"
-            
             # 상담 응답 생성
             counsel_response = generate_counseling_response(user_input, mbti, emotion)
-            response = f"[감정 분석: {emotion}]\n{counsel_response}"
-            
-            # 고민 정보 업데이트
+
+            # 음악 추천 추가
+            music_list = recommend_music_by_emotion(emotion)
+            music_text = "\n\n🎵 함께 들어보면 좋을 음악 추천:\n"
+            for music in music_list:
+                music_text += f"- {music['title']}\n  {music['url']}\n"
+
+            response = f"{counsel_response}{music_text}"
             current_concern["emotion"] = emotion
             conversation_manager.emotion_analyzed = True
         else:
-            # 4-2. 이미 감정 분석이 된 경우 후속 대화
             response = continue_counseling(
                 user_input,
-                conversation_manager.messages[-5:],  # 최근 5개 메시지를 컨텍스트로 사용
+                conversation_manager.messages[-5:],
                 current_concern,
                 conversation_manager.get_mbti() or "UNKNOWN"
             )
