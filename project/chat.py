@@ -13,15 +13,6 @@ from mbti_counsel_agent import agent_chat, conversation_manager, ConversationMan
 st.set_page_config(page_title="Chat", page_icon="💬")
 st.title('MBTI 분석 챗봇')
 st.caption('10개의 문장을 입력하시면 MBTI를 분석해 드립니다.')
-with st.expander("MBTI 유형 선택"):
-    mbti_choice = st.radio(
-        "유형을 선택하세요",
-        options=["ISTJ", "ISFJ", "INFJ", "INTJ", "ISTP", "ISFP", "INFP", "INTP",
-                    "ESTP", "ESFP", "ENFP", "ENTP", "ESTJ", "ESFJ", "ENFJ", "ENTJ"],
-        horizontal=True
-    )
-    st.write(f"선택한 MBTI: {mbti_choice}")
-
 
 # MBTI 유형 목록
 MBTI_TYPES = [
