@@ -38,6 +38,7 @@ def mbti_list():
     )
     st.container(border=True)
     st.write(mbti_descriptions[selected_mbti])
+    st.link_button("이 성격유형에 대해서 더 알아볼까요?", url=f"https://www.16personalities.com/ko/%EC%84%B1%EA%B2%A9%EC%9C%A0%ED%98%95-{selected_mbti}", icon=":material/open_in_new:")
 
 # 추천 리스트
 def recommand():
