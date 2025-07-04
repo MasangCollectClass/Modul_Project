@@ -311,7 +311,7 @@ def agent_chat(user_input: str) -> str:
             
             # 상담 응답 생성
             counsel_response = generate_counseling_response(user_input, mbti, emotion)
-            response = f"[감정 분석: {emotion}]\n{counsel_response}"
+            response = f"{counsel_response}"
             
             # 고민 정보 업데이트
             current_concern["emotion"] = emotion
