@@ -7,6 +7,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import OpenAI
 
+
 # 환경 변수 로드
 project_root = Path(__file__).parent.absolute()
 env_path = project_root / '.env'
