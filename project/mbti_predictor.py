@@ -7,14 +7,14 @@ MODEL_PATHS = {
     "ei": ("models/ei_bilstm_model2.h5", "tokenizers/ei_tokenizer2.pkl"),
     "ns": ("models/ns_bilstm_model2.h5", "tokenizers/ns_tokenizer2.pkl"),
     "tf": ("models/tf_bilstm_model2.h5", "tokenizers/tf_tokenizer2.pkl"),
-    "jp": ("models/jp_bilstm_model.h5", "tokenizers/jp_tokenizer.pkl"),
+    "jp": ("models/jp_final.h5", "tokenizers/jp_final.pkl")
 }
 THRESHOLDS = {"ei": 0.40, "ns": 0.85, "tf": 0.62, "jp": 0.50}
 LABEL_PAIRS = {
     "ei": ("E", "I"),
     "ns": ("N", "S"),
     "tf": ("T", "F"),
-    "jp": ("J", "P"),
+    "jp": ("J", "P")
 }
 MAX_LEN = 300
 
