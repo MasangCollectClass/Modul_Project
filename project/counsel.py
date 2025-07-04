@@ -44,9 +44,9 @@ MBTI_TONE = {
 }
 
 COUNSELING_TOPICS = {
-    "전문상담": ["우울증", "공황장애", "불면증", "자해", "자살", "약물", "정신병원", "과호흡", "웹", "인터넷", "검색", "찾아줘"],
-    "관계상담": ["연애", "이별", "짝사랑", "왕따", "가족", "갈등"],
-    "진로상담": ["진로", "이직", "퇴사", "입시", "진학"],
+    "전문상담": ["우울증", "공황장애", "불면증", "자해", "자살", "약물", "정신병원", "과호흡", "인터넷", "웹", "인터넷 중독", "디지털 중독"],
+    "관계상담": ["연애", "이별", "짝사랑", "왕따", "가족", "갈등", "친구", "관계"],
+    "진로상담": ["진로", "이직", "퇴사", "입시", "진학", "꿈"],
     "학업상담": ["공부", "성적", "과제", "시험"],
     "자기이해": ["자존감", "열등감", "자기혐오", "정체성"],
     "라이프스타일": ["휴가", "취미", "일상 변화", "생활 루틴"],
@@ -54,14 +54,18 @@ COUNSELING_TOPICS = {
     "미래불안": ["불안감", "계획 없음", "비전 없음"],
     "감정불안정": ["무기력", "감정 기복", "멘탈 흔들림"]
 }
+ADDITIONAL_KEYWORDS = {
+    "전문상담": ["인터넷", "웹", "검색", "중독", "찾아줘"]
+}
 
 def detect_topics(user_input: str) -> list:
     detected = []
-    for topic, keywords in COUNSELING_TOPICS.items():
-        for word in keywords:
-            if re.search(rf"\\b{re.escape(word)}\\b", user_input):
-                detected.append(topic)
-                break
+    all_topics = {**COUNSELING_TOPICS}
+    for topic, keywords in ADDITIONAL_KEYWORDS.items():
+        all_topics.setdefault(topic, []).extend(keywords)
+    for topic, keywords in all_topics.items():
+        if any(word in user_input for word in keywords):
+            detected.append(topic)
     return list(set(detected)) or ["일반"]
 
 def can_search():
@@ -76,22 +80,43 @@ def can_search():
     return False
 
 def search_expert_knowledge(query: str) -> str:
-    if not can_search():
-        return "[검색 제한 초과로 웹 검색을 생략합니다.]"
-    try:
-        search = GoogleSearch({"q": query, "api_key": serpapi_key})
-        results = search.get_dict()
-        organic_results = results.get("organic_results", [])
-        return "\n".join([r["snippet"] for r in organic_results if "snippet" in r][:3])
-    except Exception as e:
-        return f"[웹 검색 실패: {str(e)}]"
+    api_key = os.getenv("SERPAPI_API_KEY")
+    if not api_key:
+        print("[DEBUG] SERPAPI_API_KEY 누락됨")
+        return ""
+
+    search = GoogleSearch({
+        "q": query + " 추천",
+        "location": "South Korea",
+        "hl": "ko",
+        "gl": "kr",
+        "api_key": api_key
+    })
+
+    results = search.get_dict()
+
+    # 다양한 필드에서 검색 결과를 시도
+    organic_results = results.get("organic_results", [])
+    if not organic_results:
+        return "검색 결과를 찾지 못했습니다."
+
+    summary = []
+    for r in organic_results[:3]:
+        title = r.get("title", "제목 없음")
+        snippet = r.get("snippet", "")
+        link = r.get("link", "")
+        # 링크가 없으면 무시하지 않고 안내 메시지 표시
+        if not link:
+            link = "[링크 없음]"
+        summary.append(f"{title}\n{snippet}\n🔗 {link}\n")
+
+    return "\n".join(summary)
 
 def generate_counseling_response(user_input: str, user_mbti: str, recommended_song: str) -> str:
     mbti = user_mbti.upper()
     companion = MBTI_COMPATIBILITY_MAP.get(mbti)
     tone = MBTI_TONE.get(companion, "따뜻하고 진심 어린 말투입니다.")
     topics = detect_topics(user_input)
-
     expert_info = ""
     if "전문상담" in topics:
         expert_info = search_expert_knowledge(user_input)
@@ -125,7 +150,13 @@ def generate_counseling_response(user_input: str, user_mbti: str, recommended_so
         temperature=0.7,
         max_tokens=700
     )
-    return response.choices[0].message.content.strip()
+    gpt_reply = response.choices[0].message.content.strip()
+
+    # 🔽 GPT 응답 뒤에 참고 정보 덧붙이기
+    if expert_info:
+        gpt_reply += f"\n\n[참고 정보]\n{expert_info}"
+
+    return gpt_reply
 
 def summarize_counseling_response(response_text: str) -> str:
     system_prompt = (
@@ -144,3 +175,14 @@ def summarize_counseling_response(response_text: str) -> str:
         max_tokens=500
     )
     return response.choices[0].message["content"].strip()
+
+
+if __name__ == '__main__':
+    user_input = "여행 할만한곳 좀 찾아줘"
+    user_mbti = "INTP"
+    recommended_song = "IU - 밤편지"
+
+    response = generate_counseling_response(user_input, user_mbti, recommended_song)
+
+    print("\n===== 상담 응답 결과 =====\n")
+    print(response)
