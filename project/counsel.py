@@ -1,7 +1,8 @@
 # counsel.py
 import os
-import re
+import time
 import openai
+import re
 from dotenv import load_dotenv
 from openai import OpenAI
 from serpapi import GoogleSearch
@@ -9,7 +10,12 @@ from serpapi import GoogleSearch
 # 환경 변수 로드
 load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")
+serpapi_key = os.getenv("SERPAPI_API_KEY")
 client = OpenAI(api_key=api_key)
+
+# 검색 제한 관리용 전역 변수
+last_search_time = None
+search_count = 0
 
 MBTI_COMPATIBILITY_MAP = {
     "INTP": "INFJ", "INFJ": "ENFP", "ENFP": "INTJ", "INTJ": "ENFP",
@@ -38,7 +44,7 @@ MBTI_TONE = {
 }
 
 COUNSELING_TOPICS = {
-    "전문상담": ["우울증", "공황장애", "불면증", "자해", "자살", "약물", "정신병원", "과호흡", "웹", "인터넷", "검색", "찾아줘", "웹검색"],
+    "전문상담": ["우울증", "공황장애", "불면증", "자해", "자살", "약물", "정신병원", "과호흡", "웹", "인터넷", "검색", "찾아줘"],
     "관계상담": ["연애", "이별", "짝사랑", "왕따", "가족", "갈등"],
     "진로상담": ["진로", "이직", "퇴사", "입시", "진학"],
     "학업상담": ["공부", "성적", "과제", "시험"],
@@ -53,39 +59,32 @@ def detect_topics(user_input: str) -> list:
     detected = []
     for topic, keywords in COUNSELING_TOPICS.items():
         for word in keywords:
-            if re.search(rf'\b{re.escape(word)}\b', user_input):
+            if re.search(rf"\\b{re.escape(word)}\\b", user_input):
                 detected.append(topic)
                 break
     return list(set(detected)) or ["일반"]
 
-def search_expert_knowledge(query: str, max_results: int = 3) -> str:
-    serpapi_key = os.getenv("SERPAPI_API_KEY")
-    if not serpapi_key:
-        return "SerpAPI 키가 설정되지 않았습니다."
+def can_search():
+    global last_search_time, search_count
+    now = time.time()
+    if last_search_time and now - last_search_time > 3600:
+        last_search_time = now
+        search_count = 0
+    if search_count < 20:
+        search_count += 1
+        return True
+    return False
 
+def search_expert_knowledge(query: str) -> str:
+    if not can_search():
+        return "[검색 제한 초과로 웹 검색을 생략합니다.]"
     try:
-        search = GoogleSearch({
-            "q": query,
-            "hl": "ko",
-            "gl": "kr",
-            "api_key": serpapi_key
-        })
+        search = GoogleSearch({"q": query, "api_key": serpapi_key})
         results = search.get_dict()
-        organic_results = results.get("organic_results", [])[:max_results]
-
-        if not organic_results:
-            return "검색 결과를 찾을 수 없습니다."
-
-        summary_lines = []
-        for i, item in enumerate(organic_results, 1):
-            title = item.get("title", "제목 없음")
-            link = item.get("link", "#")
-            snippet = item.get("snippet", "설명 없음")
-            summary_lines.append(f"{i}. {title}\n{snippet}\n{link}\n")
-
-        return "\n".join(summary_lines)
+        organic_results = results.get("organic_results", [])
+        return "\n".join([r["snippet"] for r in organic_results if "snippet" in r][:3])
     except Exception as e:
-        return f"검색 중 오류 발생: {str(e)}"
+        return f"[웹 검색 실패: {str(e)}]"
 
 def generate_counseling_response(user_input: str, user_mbti: str, recommended_song: str) -> str:
     mbti = user_mbti.upper()
@@ -101,7 +100,6 @@ def generate_counseling_response(user_input: str, user_mbti: str, recommended_so
             f"말투: {tone}\n"
             "심각도에 따라 1~3단계 중 판단하여 대응해주세요:\n"
             "- 1단계: 부드러운 공감\n- 2단계: 공식기관 언급 포함\n- 3단계: 즉각적 조치 유도 + 기관 안내 포함\n"
-            f"[추천 음악: {recommended_song}]\n"
             f"\n※ 참고 정보:\n{expert_info[:1000]}"
         )
     else:
@@ -112,12 +110,12 @@ def generate_counseling_response(user_input: str, user_mbti: str, recommended_so
             f"말투: {tone}\n"
             f"고민 주제: {topic_str}\n"
             f"{topic_guidance}\n"
-            f"감정을 2~4개 키워드로 정리\n"
+            f"감정을 2~4개 키워드로 정리해 주세요.\n"
             f"[추천 음악: {recommended_song}]"
         )
 
     user_prompt = f'고민 내용: "{user_input}"\nMBTI: {mbti}'
-    
+
     response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
@@ -132,9 +130,7 @@ def generate_counseling_response(user_input: str, user_mbti: str, recommended_so
 def summarize_counseling_response(response_text: str) -> str:
     system_prompt = (
         "당신은 섬세하고 따뜻한 심리 상담가입니다.\n"
-        "다음 텍스트를 읽고 다음 두 가지를 정리해주세요:\n"
-        "1. 감정 키워드 (2~4개)\n"
-        "2. 따뜻한 공감 문장 또는 조언 하나\n"
+        "다음 텍스트를 읽고 감정 키워드와 공감 문장으로 요약해주세요.\n"
         "말투는 진심 어린 존댓말로 작성해주세요."
     )
     user_prompt = f"상담 응답 내용:\n{response_text}"
