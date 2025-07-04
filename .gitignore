@@ -1,6 +1,6 @@
 .env
 .venv
-.gitignore
+
 *.pyc
 __pycache__/
 /__pycache__/
@@ -8,7 +8,7 @@ __pycache__/
 *.csv
 *.exe
 *.xls
-*.xlsx
+*xlsx
 *.json
 *.pdf
 

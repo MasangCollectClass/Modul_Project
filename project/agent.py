@@ -1,8 +1,24 @@
 import os
 import sys
+import json
+import tiktoken  # OpenAI 모델의 토큰을 계산하기 위한 라이브러리 (텍스트를 토큰 단위로 분리, 토큰 수를 계산하는데 사용)
 from pathlib import Path
+from typing import List, Dict, Any, Optional, Tuple
 from dotenv import load_dotenv
 from openai import OpenAI
+
+# 모델 설정
+MODEL_NAME = "gpt-3.5-turbo"
+MAX_TOKENS = 16000  # gpt-3.5-turbo의 최대 토큰
+SAFETY_MARGIN = 0.8  # 80%만 사용 (약 13,000 토큰)
+RESPONSE_TOKENS = 1000  # 응답용으로 확보할 토큰
+MAX_CONTEXT_TOKENS = int((MAX_TOKENS - RESPONSE_TOKENS) * SAFETY_MARGIN)
+
+# 토큰 카운터 초기화
+try:
+    encoding = tiktoken.encoding_for_model(MODEL_NAME)
+except KeyError:
+    encoding = tiktoken.get_encoding("cl100k_base")  # gpt-3.5-turbo용 인코딩
 
 # MBTI 예측 모듈 임포트
 from mbti_predictor import predict_mbti
@@ -10,18 +26,7 @@ from mbti_predictor import predict_mbti
 # 프로젝트 루트 경로 추가
 project_root = Path(__file__).parent.absolute()
 sys.path.append(str(project_root))
-mbti_prompt = [
-    '사람들과 함께 시간을 보낼 때와 혼자 있을 때, 각각 어떤 기분이 드나요? 그리고 어떤 상황에서 에너지가 더 생기는지 설명해주세요.',
-    '처음 만나는 사람과의 대화에서 당신은 어떤 스타일인가요? 주로 무슨 얘기를 하고, 어떻게 대화를 시작하나요?',
-    '일을 시작할 때, 계획을 세우는 편인가요? 아니면 상황에 맞춰 유연하게 움직이는 편인가요? 구체적인 경험을 얘기해주세요.',
-    '중요한 결정을 내릴 때, 어떤 기준을 더 중시하나요? 논리적인 분석인가요, 아니면 감정과 인간관계의 영향을 고려하나요?',
-    '새로운 아이디어나 프로젝트를 시작할 때, 어떤 점에 가장 흥미를 느끼고 집중하게 되나요?',
-    '어떤 문제를 해결할 때, 실제 사례나 경험을 바탕으로 접근하나요? 아니면 가능성과 아이디어를 먼저 떠올리나요?',
-    '모임이나 여행을 준비할 때, 철저히 계획을 세우는 편인가요, 아니면 즉흥적인 즐거움을 더 추구하나요?',
-    '친구나 동료가 실수를 했을 때, 당신은 주로 어떤 반응을 하나요? 왜 그렇게 행동하는 편인가요?',
-    '어떤 일을 처음 배울 때, 매뉴얼이나 세부사항부터 알고 싶어하나요, 아니면 일단 전체 흐름을 먼저 파악하고 싶어하나요?',
-    '당신에게 이상적인 하루는 어떤 모습인가요? 구체적으로 어떤 활동을 하고, 누구와 함께하길 원하는지 설명해주세요.'
-]
+
 # 로컬 모듈 임포트
 from emotion import analyze_sentiment
 from counsel import generate_counseling_response
@@ -35,9 +40,53 @@ if not OPENAI_API_KEY:
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
-# 전역 상태 변수
-session_inputs = []     # 사용자 누적 문장
-mbti_state = None       # 예측된 MBTI
+def count_tokens(text: str) -> int:
+    """텍스트의 토큰 수를 계산합니다."""
+    return len(encoding.encode(text))
+
+class ConversationManager:
+    def __init__(self, max_history: int = 10):
+        self.messages: List[Dict[str, str]] = []
+        self.max_history = max_history
+        self.mbti: Optional[str] = None
+        self.token_count = 0
+        
+    def add_message(self, role: str, content: str) -> None:
+        """대화 메시지를 추가하고 토큰 수를 업데이트합니다."""
+        message = {"role": role, "content": content}
+        message_tokens = count_tokens(f"{role}: {content}")
+        
+        # 토큰 제한을 초과하면 오래된 메시지부터 제거
+        while self.token_count + message_tokens > MAX_CONTEXT_TOKENS and self.messages:
+            removed = self.messages.pop(0)
+            self.token_count -= count_tokens(f"{removed['role']}: {removed['content']}")
+        
+        self.messages.append(message)
+        self.token_count += message_tokens
+    
+    def get_conversation_context(self) -> List[Dict[str, str]]:
+        """토큰 제한 내에서 대화 맥락을 반환합니다."""
+        # 이미 add_message에서 토큰 관리를 하므로 그대로 반환
+        return self.messages
+        
+    def get_token_count(self) -> int:
+        """현재 사용 중인 토큰 수를 반환합니다."""
+        return self.token_count
+    
+    def set_mbti(self, mbti: str) -> None:
+        """MBTI를 설정합니다."""
+        self.mbti = mbti
+    
+    def get_mbti(self) -> Optional[str]:
+        """MBTI를 반환합니다."""
+        return self.mbti
+    
+    def get_user_messages(self) -> List[str]:
+        """사용자 메시지만 반환합니다."""
+        return [msg["content"] for msg in self.messages if msg["role"] == "user"]
+
+# 전역 대화 관리자
+conversation_manager = ConversationManager()
 
 # 음악 추천 더미 값 (후에 연동 가능)
 recommended_song = "IU - 밤편지"
@@ -55,36 +104,109 @@ def analyze_mbti(texts: list) -> str:
         print(f"MBTI 분석 중 오류 발생: {e}")
         return "INTP"  # 오류 시 기본값
 
-def agent_chat(user_input: str, chat_history: list) -> tuple[str, bool]:
-    global mbti_state
+def trim_chat_history(chat_history: List[Tuple[str, str]]) -> List[Dict[str, str]]:
+    """대화 기록을 토큰 제한 내에서 자릅니다."""
+    total_tokens = 0
+    trimmed_messages = []
     
-    # MBTI 미설정 상태일 때 (10개 미만의 문장을 받은 경우)
-    if mbti_state is None:
-        # 현재까지의 사용자 메시지 수 계산 (chat_history는 이미 이전까지의 메시지만 포함)
-        user_message_count = len(chat_history) + 1  # 현재 입력 포함
+    # 시스템 프롬프트 토큰 계산
+    system_prompt = "당신은 친절한 상담사입니다. 이전 대화 맥락을 고려하여 답변해주세요."
+    system_tokens = count_tokens(system_prompt)
+    
+    # 최신 메시지부터 추가 (역순으로 처리)
+    for role, message in reversed(chat_history):
+        message_content = f"{role}: {message}"
+        message_tokens = count_tokens(message_content)
         
-        # 10개 미만인 경우
-        if user_message_count < 10:
-            return f"MBTI 분석을 위한 문장 {user_message_count}/10을 입력하셨습니다.\n{10 - user_message_count}개 더 입력해 주세요.", False
-        
-        # 10개 이상인 경우 (현재 입력 포함)
-        elif user_message_count >= 10:
-            # 현재 입력을 포함한 10개 메시지 가져오기
-            all_user_messages = chat_history.copy()
-            all_user_messages.append(user_input)
-            user_texts = all_user_messages[-10:]  # 최근 10개 메시지만 사용
+        if total_tokens + message_tokens + system_tokens > MAX_CONTEXT_TOKENS:
+            break
             
-            # MBTI 분석
-            mbti_state = analyze_mbti(user_texts)
-            return f"MBTI 분석이 완료되었습니다! 당신의 MBTI는 {mbti_state}로 보입니다.\n이제 고민을 말씀해 주시면 감정 분석과 상담을 도와드리겠습니다.", True
+        trimmed_messages.insert(0, {"role": "user" if role == "user" else "assistant", "content": message})
+        total_tokens += message_tokens
+    
+    return trimmed_messages
 
-    # MBTI 분석 후 상담 진행
+def agent_chat(user_input: str, chat_history: list = None) -> tuple[str, bool]:
+    """
+    사용자 입력에 대한 응답을 생성합니다.
+    
+    Args:
+        user_input: 사용자 입력 메시지
+        chat_history: 이전 대화 기록 (호환성을 위해 유지)
+        
+    Returns:
+        tuple: (응답 메시지, MBTI 분석 완료 여부)
+    """
+    global conversation_manager
+    
     try:
-        emotion = analyze_sentiment(user_input)
-        counsel_response = generate_counseling_response(user_input, mbti_state, recommended_song)
-        return f"\n{counsel_response}", True
+        # 사용자 메시지 추가 (토큰 관리 포함)
+        conversation_manager.add_message("user", user_input)
+        
+        # MBTI 미설정 상태일 때 (10개 미만의 문장을 받은 경우)
+        if conversation_manager.get_mbti() is None:
+            user_messages = conversation_manager.get_user_messages()
+            user_message_count = len(user_messages)
+            
+            # 10개 미만인 경우
+            if user_message_count < 10:
+                progress_msg = f"MBTI 분석을 위한 문장 {user_message_count}/10을 입력하셨습니다.\n{10 - user_message_count}개 더 입력해 주세요."
+                # 진행 상황을 시스템 메시지로 추가하여 유지
+                conversation_manager.add_message("system", progress_msg)
+                return progress_msg, False
+            
+            # 10개 이상인 경우 (현재 입력 포함)
+            elif user_message_count >= 10:
+                # 최근 10개 메시지만 사용
+                user_texts = user_messages[-10:]
+                
+                # MBTI 분석
+                mbti = analyze_mbti(user_texts)
+                conversation_manager.set_mbti(mbti)
+                
+                # 대화 맥락에 MBTI 정보 추가
+                conversation_manager.add_message(
+                    "system", 
+                    f"사용자의 MBTI는 {mbti}로 분석되었습니다. 이에 맞는 상담을 진행해주세요."
+                )
+                
+                return (
+                    f"MBTI 분석이 완료되었습니다! 당신의 MBTI는 {mbti}로 보입니다.\n"
+                    "이제 고민을 말씀해 주시면 감정 분석과 상담을 도와드리겠습니다.", 
+                    True
+                )
+
+        # MBTI 분석 후 상담 진행
+        try:
+            # 대화 맥락을 고려한 응답 생성
+            emotion = analyze_sentiment(user_input)
+            mbti = conversation_manager.get_mbti() or "UNKNOWN"
+            counsel_response = generate_counseling_response(
+                user_input, 
+                mbti, 
+                recommended_song
+            )
+            
+            # 어시스턴트 응답을 대화 기록에 추가
+            full_response = f"[감정 분석 결과: {emotion}]\n{counsel_response}"
+            conversation_manager.add_message("assistant", full_response)
+            
+            return full_response, True
+            
+        except Exception as e:
+            error_msg = f"상담 중 오류가 발생했습니다: {str(e)}\n계속해서 이야기를 나눠보세요."
+            conversation_manager.add_message("system", f"오류 발생: {str(e)}")
+            try:
+                # 오류 메시지도 토큰 제한 내에서 추가
+                conversation_manager.add_message("assistant", error_msg)
+            except:
+                pass
+            return error_msg, True
+            
     except Exception as e:
-        return f"상담 중 오류가 발생했습니다: {str(e)}\n계속해서 이야기를 나눠보세요.", False
+        error_msg = f"메시지 처리 중 오류가 발생했습니다: {str(e)}"
+        print(error_msg)
+        return error_msg, False
 
 # 테스트
 if __name__ == '__main__':
