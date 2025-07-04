@@ -49,10 +49,32 @@ class ConversationManager:
         self.current_concern = None  # 현재 다루고 있는 고민
         self.concern_history = []    # 고민 이력
         self.emotion_analyzed = False  # 현재 고민에 대한 감정 분석 여부
+        self.current_question = None  # 현재 질문
+        self.last_question_index = -1  # 마지막으로 물어본 질문 인덱스
+        self.clarifying_question = False  # 현재 명확한 질문을 요청 중인지 여부
 
     def get_user_message_count(self) -> int:
-        """사용자 메시지의 총 개수를 반환합니다."""
-        return len([msg for msg in self.messages if msg["role"] == "user"])
+        """유효한 사용자 응답의 개수를 반환합니다."""
+        # 초기 상태인 경우 0 반환
+        if not self.messages or len(self.messages) <= 1:  # 초기 메시지만 있는 경우
+            return 0
+            
+        # 명확한 질문을 요청하는 메시지는 카운트하지 않음
+        clarification_keywords = ["이해가 안돼", "무슨 말이야", "다시 말해줘", "설명해줘", "질문을 모르겠어", "무슨 상황"]
+        
+        # 모든 사용자 메시지 중에서 유효한 응답만 필터링
+        valid_responses = [
+            msg for msg in self.messages 
+            if msg["role"] == "user" and 
+            not any(keyword in msg["content"].lower() for keyword in clarification_keywords)
+        ]
+        
+        # 명확한 질문을 요청한 경우에는 진행 상황 유지 (클라이언트 측에서만 표시용)
+        if self.clarifying_question:
+            return max(0, self.last_question_index)  # 최소 0 반환
+            
+        # 진행 상황 반환 (0부터 시작, last_question_index를 우선 사용)
+        return min(max(0, self.last_question_index), 10)
 
     def add_message(self, role: str, content: str) -> None:
         """대화 메시지를 추가하고 토큰 수를 업데이트합니다."""
@@ -200,27 +222,69 @@ def agent_chat(user_input: str) -> str:
         # 1. 새로운 고민인지 확인
         if conversation_manager.is_new_concern(user_input):
             conversation_manager.start_new_concern(user_input)
-            
-        # 2. 사용자 메시지 추가
-        conversation_manager.add_message("user", user_input)
+        
+        # 2. 사용자 메시지 추가 (이미 추가된 메시지는 추가하지 않음)
+        if not any(msg.get('content') == user_input and msg.get('role') == 'user' 
+                  for msg in conversation_manager.messages[-3:]):
+            conversation_manager.add_message("user", user_input)
         
         # 3. MBTI 분석이 안된 경우
         if conversation_manager.get_mbti() is None:
             user_messages = conversation_manager.get_user_messages()
-            messages_count = len(user_messages)
-            remaining = max(0, 10 - messages_count)
+            
+            # 명확한 질문을 요청하는 경우 (질문을 이해하지 못했을 때)
+            clarification_keywords = ["이해가 안돼", "무슨 말이야", "다시 말해줘", "설명해줘", "질문을 모르겠어", "무슨 상황"]
+            if any(keyword in user_input.lower() for keyword in clarification_keywords) and conversation_manager.current_question:
+                # 이전 질문을 다시 물어보고 진행 상황은 유지
+                response = f"죄송합니다. 질문이 명확하지 않았나요?\n\n{conversation_manager.current_question}"
+                conversation_manager.clarifying_question = True
+                # 이미 추가된 메시지가 아닌 경우에만 추가
+                if not any(msg.get('content') == response and msg.get('role') == 'assistant' 
+                          for msg in conversation_manager.messages[-3:]):
+                    conversation_manager.add_message("assistant", response)
+                return response
+            
+            # 명확한 질문을 요청하는 메시지가 아닌 경우 (유효한 답변)
+            if not any(keyword in user_input.lower() for keyword in clarification_keywords):
+                # 이전에 명확한 질문을 요청한 경우 (이제 유효한 답변을 받음)
+                if conversation_manager.clarifying_question:
+                    conversation_manager.clarifying_question = False
+                    # 진행 상황 업데이트 (이전 질문에 대한 답변이므로 인덱스 증가)
+                    conversation_manager.last_question_index = min(
+                        conversation_manager.last_question_index + 1,
+                        10  # 최대 10개 질문
+                    )
+                # 새로운 정상적인 답변인 경우
+                elif not conversation_manager.clarifying_question:
+                    # 질문 인덱스 증가 (최대 10)
+                    conversation_manager.last_question_index = min(
+                        conversation_manager.last_question_index + 1,
+                        10  # 최대 10개 질문
+                    )
             
             # 3-1. 충분한 메시지가 쌓이지 않은 경우
-            if messages_count < 10:
-                # 진행 상황 안내 메시지
-                progress_msg = f"[진행 상황: {messages_count}/10] MBTI 분석을 위해 {remaining}개 더 입력해주세요."
+            if len(user_messages) < 10:
+                # 진행 상황 안내 메시지 (실제 답변한 질문 수 기준)
+                current_progress = min(conversation_manager.last_question_index, 10)
+                remaining = max(0, 10 - current_progress)
+                progress_msg = f"[진행 상황: {current_progress}/10] MBTI 분석을 위해 {remaining}개 더 입력해주세요."
                 
-                # MBTI 분석을 위한 질문 생성 (이미 진행 상황을 포함)
-                mbti_question = generate_mbti_question(user_messages)
+                # MBTI 분석을 위한 질문 생성 (이미 생성된 질문이 없을 때만 새로 생성)
+                if not conversation_manager.current_question or not conversation_manager.clarifying_question:
+                    mbti_question = generate_mbti_question(user_messages)
+                    conversation_manager.current_question = mbti_question
+                else:
+                    mbti_question = conversation_manager.current_question
                 
                 # 진행 상황과 질문을 결합하여 반환
                 response = f"{progress_msg}\n\n{mbti_question}"
-                conversation_manager.add_message("assistant", response)
+                
+                # 이미 추가된 메시지가 아닌 경우에만 추가
+                if not any(msg.get('content') == response and msg.get('role') == 'assistant' 
+                          for msg in conversation_manager.messages[-3:]):
+                    conversation_manager.add_message("assistant", response)
+                
+                conversation_manager.clarifying_question = False  # 명확한 질문 플래그 초기화
                 return response
             
             # 3-2. MBTI 분석 수행
