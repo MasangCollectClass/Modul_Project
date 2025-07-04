@@ -1,6 +1,14 @@
 import streamlit as st
 
-st.header("당신에게 추천드려요!")
+# MBTI가 세션 상태에 없으면 접근 막기
+if not st.session_state.get("mbti_type"):
+    st.error("MBTI가 선택되거나 분석되지 않았습니다. 먼저 MBTI를 선택하거나 분석해 주세요.")
+    st.stop()
+
+# MBTI 표시
+st.header(f"당신의 MBTI는 {st.session_state['mbti_type']} 입니다!")
+
+st.header(f"{st.session_state['mbti_type']}인 당신에게 추천드려요!")
 
 # 탭
 tabs = st.tabs(["여행지 추천", "노래 추천"])
