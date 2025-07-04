@@ -167,25 +167,6 @@ def generate_mbti_question(previous_messages: List[str]) -> str:
         print(f"MBTI 질문 생성 중 오류: {e}")
         return "MBTI를 더 잘 이해하기 위해 더 많은 대화를 나눠볼까요?"
 
-def generate_counseling_response(user_input: str, mbti: str, emotion: str) -> str:
-    """상담 응답을 생성합니다."""
-    prompt = f"""
-    당신은 {mbti} 유형의 사용자를 위한 전문 상담사입니다.
-    사용자의 현재 감정: {emotion}
-    
-    다음 사용자 메시지에 공감하고, {mbti} 유형에 적합한 조언을 해주세요.
-    사용자: {user_input}
-    """
-    
-    try:
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7,
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        return "이해하는 데 어려움이 있네요. 조금 더 자세히 말씀해 주시겠어요?"
 
 def continue_counseling(user_input: str, context: List[Dict[str, str]], concern: dict, mbti: str) -> str:
     """이미 분석된 고민에 대한 후속 대화를 처리합니다."""
