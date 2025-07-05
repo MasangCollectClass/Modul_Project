@@ -2,27 +2,6 @@ import os
 from dotenv import load_dotenv
 from googleapiclient.discovery import build
 
-<<<<<<< HEAD
-load_dotenv()
-
-API_KEY = os.getenv("YOUTUBE_API_KEY")
-
-youtube = build("youtube", "v3", developerKey=API_KEY)
-
-request = youtube.search().list(
-    part="snippet",
-    q="biochar concrete",   # 검색어
-    maxResults=5,
-    type="video"
-)
-
-response = request.execute()
-
-for item in response["items"]:
-    title = item["snippet"]["title"]
-    video_id = item["id"]["videoId"]
-    print(f"{title} - https://www.youtube.com/watch?v={video_id}")
-=======
 # .env에서 API 키 로드
 load_dotenv()
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
@@ -67,4 +46,3 @@ if __name__ == '__main__':
     print("\n🎵 추천 음악:")
     for music in recommendations:
         print(f"- {music['title']}\n  {music['url']}\n")
->>>>>>> bin
