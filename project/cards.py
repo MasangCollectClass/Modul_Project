@@ -46,9 +46,8 @@ def recommand():
     with st.container(border=True):
         st.markdown("### 🎵 추천 음악")
         st.caption("감정을 어루만져 줄 음악을 추천합니다.")
-        st.video("https://www.youtube.com/watch?v=-xDt6P58tt0&list=RD-xDt6P58tt0&start_radio=1", autoplay=False)
+        st.caption('감정분석을 먼저 완료해주세요!')
 
     with st.container(border=True):
         st.markdown("### ✈️ 감성 여행지")
-        st.caption("지친 마음을 달래 줄 추천 여행지 영상입니다.")
-        st.video("https://www.youtube.com/watch?v=exJF_Y3QFbg", autoplay=False)
+        st.caption("지친 마음을 달래 줄 추천 여행지 추천입니다.")

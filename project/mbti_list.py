@@ -23,7 +23,7 @@ mbti_descriptions = {
     "INTP": "논리적이며 이론적이고 독창적인 아이디어를 선호합니다.",
 }
 
-tabs = st.tabs(["MBTI", "소개영상"])
+tabs = st.tabs(["💖MBTI", "🐮🐶소개영상"])
 
 with tabs[0]:
     selected_mbti = st.selectbox(
@@ -46,6 +46,6 @@ with tabs[0]:
             st.warning(f"{selected_mbti} 이미지가 없습니다.")
 
 with tabs[1]:
-    st.container(border=True).video(
-        "https://www.youtube.com/watch?v=Y8P1Bp_X1Ts", autoplay=False
-    )
+    with st.container(border=True):
+        st.video("https://www.youtube.com/watch?v=Y8P1Bp_X1Ts", autoplay=False)
+        st.caption("출처: Youtube 채널 3분차이, https://www.youtube.com/channel/UCH1XaPeohrlvtd6iabXplRg")
