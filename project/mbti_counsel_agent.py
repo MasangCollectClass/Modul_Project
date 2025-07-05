@@ -7,7 +7,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import OpenAI
 
-
 # 환경 변수 로드
 project_root = Path(__file__).parent.absolute()
 env_path = project_root / '.env'
@@ -61,24 +60,6 @@ class ConversationManager:
         if not self.messages or len(self.messages) <= 1:  # 초기 메시지만 있는 경우
             return 0
             
-<<<<<<< HEAD
-        # 명확한 질문을 요청하는 메시지는 카운트하지 않음
-        clarification_keywords = ["이해가 안돼", "무슨 말이야", "다시 말해줘", "설명해줘", "질문을 모르겠어", "무슨 상황"]
-        
-        # 모든 사용자 메시지 중에서 유효한 응답만 필터링
-        valid_responses = [
-            msg for msg in self.messages 
-            if msg["role"] == "user" and 
-            not any(keyword in msg["content"].lower() for keyword in clarification_keywords)
-        ]
-        
-        # 명확한 질문을 요청한 경우에는 진행 상황 유지 (클라이언트 측에서만 표시용)
-        if self.clarifying_question:
-            return max(0, self.last_question_index)  # 최소 0 반환
-            
-        # 진행 상황 반환 (0부터 시작, last_question_index를 우선 사용)
-        return min(max(0, self.last_question_index), 10)
-=======
         # 명확한 질문을 요청하는 메시지 패턴
         clarification_keywords = [
             "이해가 안돼", "무슨 말이야", "다시 말해줘", 
@@ -105,7 +86,6 @@ class ConversationManager:
             
         # 진행 상황 반환 (최대 10)
         return min(len(valid_responses), 10)
->>>>>>> api-integrator
 
     def add_message(self, role: str, content: str) -> None:
         """대화 메시지를 추가하고 토큰 수를 업데이트합니다."""
@@ -275,19 +255,11 @@ def agent_chat(user_input: str) -> str:
                     )
             
             # 3-1. 충분한 메시지가 쌓이지 않은 경우
-<<<<<<< HEAD
-            if len(user_messages) < 10:
-                # 진행 상황 안내 메시지 (실제 답변한 질문 수 기준)
-                current_progress = min(conversation_manager.last_question_index, 10)
-                remaining = max(0, 10 - current_progress)
-                progress_msg = f"[진행 상황: {current_progress}/10] MBTI 분석을 위해 {remaining}개 더 입력해주세요."
-=======
             valid_message_count = conversation_manager.get_user_message_count()
             if valid_message_count < 10:
                 # 진행 상황 안내 메시지 (유효한 답변 수 기준)
                 remaining = 10 - valid_message_count
                 progress_msg = f"[진행 상황: {valid_message_count}/10] MBTI 분석을 위해 {remaining}개 더 입력해주세요."
->>>>>>> api-integrator
                 
                 # MBTI 분석을 위한 질문 생성 (이미 생성된 질문이 없을 때만 새로 생성)
                 if not conversation_manager.current_question or not conversation_manager.clarifying_question:
@@ -347,14 +319,8 @@ def agent_chat(user_input: str) -> str:
             mbti = conversation_manager.get_mbti() or "UNKNOWN"
             # 상담 응답 생성
             counsel_response = generate_counseling_response(user_input, mbti, emotion)
-<<<<<<< HEAD
-            response = f"{counsel_response}"
-            
-            # 고민 정보 업데이트
-=======
 
             response = f"{counsel_response}"
->>>>>>> api-integrator
             current_concern["emotion"] = emotion
             conversation_manager.emotion_analyzed = True
         else:
