@@ -33,8 +33,7 @@ except KeyError:
 from mbti_predictor import predict_mbti
 from emotion import analyze_sentiment
 from counsel import generate_counseling_response
-from music import recommend_music_by_emotion  # 음악 추천 모듈 추가
-from travel import recommend_places_by_mbti  # 여행지 추천 모듈 추가
+
 
 client = OpenAI(api_key=OPENAI_API_KEY)
 
@@ -210,17 +209,6 @@ def agent_chat(user_input: str) -> str:
     사용자 입력에 대한 응답을 생성합니다.
     """
     global conversation_manager
-    
-    # 여행지 추천 요청 처리
-    travel_keywords = ["여행지 추천", "여행 가고 싶어", "여행 갈 곳 추천", "어디로 여행가지", "여행지 추천해줘"]
-    if any(keyword in user_input for keyword in travel_keywords):
-        mbti = conversation_manager.get_mbti()
-        if not mbti:
-            return "MBTI 분석이 아직 완료되지 않았어요. 먼저 MBTI 분석을 완료해주세요."
-            
-        # 여행지 추천 결과 가져오기
-        travel_recommendations = recommend_places_by_mbti(mbti)
-        return travel_recommendations
 
     try:
         # 1. 새로운 고민인지 확인
@@ -332,13 +320,7 @@ def agent_chat(user_input: str) -> str:
             # 상담 응답 생성
             counsel_response = generate_counseling_response(user_input, mbti, emotion)
 
-            # 음악 추천 추가
-            music_list = recommend_music_by_emotion(emotion)
-            music_text = "\n\n🎵 함께 들어보면 좋을 음악 추천:\n"
-            for music in music_list:
-                music_text += f"- {music['title']}\n  {music['url']}\n"
-
-            response = f"{counsel_response}{music_text}"
+            response = f"{counsel_response}"
             current_concern["emotion"] = emotion
             conversation_manager.emotion_analyzed = True
         else:
