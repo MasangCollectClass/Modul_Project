@@ -231,47 +231,26 @@ def agent_chat(user_input: str) -> str:
                 # 이전에 명확한 질문을 요청한 경우 (이제 유효한 답변을 받음)
                 if conversation_manager.clarifying_question:
                     conversation_manager.clarifying_question = False
-                    # 진행 상황 업데이트 (이전 질문에 대한 답변이므로 인덱스 증가)
-                    conversation_manager.last_question_index = min(
-                        conversation_manager.last_question_index + 1,
-                        10  # 최대 10개 질문
-                    )
                 # 새로운 정상적인 답변인 경우
-                elif not conversation_manager.clarifying_question:
-                    # 질문 인덱스 증가 (최대 10)
-                    conversation_manager.last_question_index = min(
-                        conversation_manager.last_question_index + 1,
-                        10  # 최대 10개 질문
-                    )
-            
-            # 3-1. 충분한 메시지가 쌓이지 않은 경우
-            if len(user_messages) < 10:
-                # 진행 상황 안내 메시지 (실제 답변한 질문 수 기준)
-                current_progress = min(conversation_manager.last_question_index, 10)
-                remaining = max(0, 10 - current_progress)
-                progress_msg = f"[진행 상황: {current_progress}/10] MBTI 분석을 위해 {remaining}개 더 입력해주세요."
-                
-                # MBTI 분석을 위한 질문 생성 (이미 생성된 질문이 없을 때만 새로 생성)
-                if not conversation_manager.current_question or not conversation_manager.clarifying_question:
-                    mbti_question = generate_mbti_question(user_messages)
-                    conversation_manager.current_question = mbti_question
                 else:
-                    mbti_question = conversation_manager.current_question
-                
-                # 진행 상황과 질문을 결합하여 반환
-                response = f"{progress_msg}\n\n{mbti_question}"
-                
-                # 이미 추가된 메시지가 아닌 경우에만 추가
-                if not any(msg.get('content') == response and msg.get('role') == 'assistant' 
-                          for msg in conversation_manager.messages[-3:]):
-                    conversation_manager.add_message("assistant", response)
-                
-                conversation_manager.clarifying_question = False  # 명확한 질문 플래그 초기화
-                return response
+                    # 유효한 응답만 카운트하도록 수정
+                    valid_responses = [
+                        msg for msg in conversation_manager.messages 
+                        if msg["role"] == "user" and 
+                        not any(k in msg["content"].lower() for k in clarification_keywords)
+                    ]
+                    conversation_manager.last_question_index = len(valid_responses)
             
-            # 3-2. MBTI 분석 수행
-            else:
-                user_texts = user_messages[-10:]  # 최근 10개 메시지만 사용
+            # 3-1. 유효한 사용자 응답만 필터링 (명확화 요청 제외)
+            valid_responses = [
+                msg for msg in conversation_manager.messages 
+                if msg["role"] == "user" and 
+                not any(keyword in msg["content"].lower() for keyword in clarification_keywords)
+            ]
+            
+            # 3-2. 10개 이상의 유효한 응답이 있는 경우 MBTI 분석 수행
+            if len(valid_responses) >= 10:
+                user_texts = [msg["content"] for msg in valid_responses[-10:]]  # 최근 10개 유효한 메시지만 사용
                 mbti = predict_mbti(" ".join(user_texts))
                 conversation_manager.set_mbti(mbti)
                 
@@ -281,6 +260,29 @@ def agent_chat(user_input: str) -> str:
                 )
                 conversation_manager.add_message("assistant", welcome_msg)
                 return welcome_msg
+                
+            # 3-3. 아직 10개 미만의 유효한 응답인 경우 다음 질문 진행
+            current_progress = len(valid_responses)
+            remaining = max(0, 10 - current_progress)
+            progress_msg = f"[진행 상황: {current_progress}/10] MBTI 분석을 위해 {remaining}개 더 입력해주세요."
+            
+            # MBTI 분석을 위한 질문 생성 (이미 생성된 질문이 없을 때만 새로 생성)
+            if not conversation_manager.current_question or not conversation_manager.clarifying_question:
+                mbti_question = generate_mbti_question([msg["content"] for msg in valid_responses])
+                conversation_manager.current_question = mbti_question
+            else:
+                mbti_question = conversation_manager.current_question
+            
+            # 진행 상황과 질문을 결합하여 반환
+            response = f"{progress_msg}\n\n{mbti_question}"
+            
+            # 이미 추가된 메시지가 아닌 경우에만 추가
+            if not any(msg.get('content') == response and msg.get('role') == 'assistant' 
+                      for msg in conversation_manager.messages[-3:]):
+                conversation_manager.add_message("assistant", response)
+            
+            conversation_manager.clarifying_question = False  # 명확한 질문 플래그 초기화
+            return response
         
         # 4. MBTI 분석 완료 후 상담 진행
         current_concern = conversation_manager.current_concern

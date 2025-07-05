@@ -136,7 +136,7 @@ def generate_counseling_response(user_input: str, user_mbti: str, recommended_so
             f"고민 주제: {topic_str}\n"
             f"{topic_guidance}\n"
             f"감정을 2~4개 키워드로 정리해 주세요.\n"
-            f"[추천 음악: {recommended_song}]"
+            f"{recommended_song}에 위로가 될 만한 음악을 추천해주세요."
         )
 
     user_prompt = f'고민 내용: "{user_input}"\nMBTI: {mbti}'
