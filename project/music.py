@@ -46,4 +46,3 @@ if __name__ == '__main__':
     print("\n🎵 추천 음악:")
     for music in recommendations:
         print(f"- {music['title']}\n  {music['url']}\n")
->>>>>>> bin
