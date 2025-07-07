@@ -26,6 +26,8 @@ Modul_Project/
 │ ├── home.py # 홈 화면 구성
 │ ├── streamlit_app.py # 메인 Streamlit 앱 진입점
 │ ├── requirements.txt # 프로젝트 전용 의존성 목록
+│ ├── music.py # 감정기반 음악 추천 기능
+│ ├── travel.py # mbti기반 여행지 추천 기능
 │ │
 │ ├── models/ # 학습된 MBTI 분류 모델 폴더
 │ │ ├── ei_bilstm_model2.h5
@@ -60,7 +62,7 @@ Modul_Project/
 
 ## 실행 방법
 
-1. 프로젝트 루트에 `.env` 파일을 생성하고 OpenAI API 키를 등록:
+1. 프로젝트 루트에 `.env` 파일을 생성하고 OpenAI API, SERPAPI_API, YOUTUBE_API키를 등록:
 OPENAI_API_KEY=sk-...
 
 2. 가상환경 실행 후, 필요한 라이브러리를 설치:
