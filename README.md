@@ -4,9 +4,9 @@ Streamlit을 기반으로 한 프론트엔드와 백엔드 통합 구조로 구�
 
 ---
 
-```
-## 디렉터리 구조
 
+## 디렉터리 구조
+```
 Modul_Project_1/
 ├── .streamlit/                # Streamlit 앱 설정 디렉토리
 ├── .venv/                     # 가상 환경 디렉토리
