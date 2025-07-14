@@ -7,46 +7,41 @@ Streamlit을 기반으로 한 프론트엔드와 백엔드 통합 구조로 구�
 ```
 ## 디렉터리 구조
 
-Modul_Project/
-├── .gitignore # Git 추적 제외 항목
-├── .streamlit/ # Streamlit 설정 파일
-├── .venv/ # 가상환경 폴더
-├── README.md # 프로젝트 설명 파일
-├── module.ipynb # 분석 및 실험용 모듈
-├── requirements.txt # 루트 의존성 파일
-│
-├── project/ # 메인 프로젝트 폴더
-│ ├── pycache/ # 파이썬 캐시
-│ ├── agent.py # GPT 기반 상담 에이전트 로직
-│ ├── mbti_predictor.py # MBTI 예측 모델 로직
-│ ├── counsel.py # 상담 응답 생성 기능
-│ ├── emotion.py # 감정 분석 기능
-│ ├── cards.py # UI 카드 컴포넌트 (구버전)
-│ ├── cards2.py # UI 카드 컴포넌트 (최신)
-│ ├── home.py # 홈 화면 구성
-│ ├── streamlit_app.py # 메인 Streamlit 앱 진입점
-│ ├── requirements.txt # 프로젝트 전용 의존성 목록
-│ ├── music.py # 감정기반 음악 추천 기능
-│ ├── travel.py # mbti기반 여행지 추천 기능
-│ │
-│ ├── models/ # 학습된 MBTI 분류 모델 폴더
-│ │ ├── ei_bilstm_model2.h5
-│ │ ├── ns_bilstm_model2.h5
-│ │ ├── tf_bilstm_model.h5
-│ │ └── jp_bilstm_model.h5
-│ │
-│ ├── tokenizers/ # 토크나이저 파일 폴더
-│ │ ├── ei_tokenizer2.pkl
-│ │ ├── ns_tokenizer2.pkl
-│ │ ├── tf_tokenizer.pkl
-│ │ └── jp_tokenizer.pkl
-│ │
-│ ├── static/ # 정적 파일 (아이콘, CSS 등)
-│ ├── images/ # 이미지 리소스
-│ └── pages/ # Streamlit 페이지
-│ ├── chat.py # 채팅 페이지
-│ ├── mbti_list.py # MBTI 유형 설명 페이지
-│ └── recommand.py # 콘텐츠 추천 페이지
+Modul_Project_1/
+├── .streamlit/                # Streamlit 앱 설정 디렉토리
+├── .venv/                     # 가상 환경 디렉토리
+├── images/                    # 이미지 파일 저장 디렉토리
+├── project/                   # 프로젝트 메인 디렉토리
+│   ├── database/              # 데이터베이스 관련 파일
+│   ├── images/                # 이미지 파일 저장 디렉토리
+│   ├── models/                # 학습된 모델 파일들
+│   ├── static/                # 정적 파일들
+│   ├── tokenizers/            # 토크나이저 파일들
+│   ├── cards.py               # 카드 UI 컴포넌트
+│   ├── chat.py                # 채팅 기능 구현
+│   ├── counsel.py             # 상담 관련 기능
+│   ├── emotion.py             # 감정 분석 기능
+│   ├── home.py                # 홈 페이지 구현
+│   ├── mbti_counsel_agent.py  # MBTI 상담 에이전트
+│   ├── mbti_list.py           # MBTI 유형 관련 데이터
+│   ├── mbti_predictor.py      # MBTI 예측 모델
+│   ├── music.py               # 음악 추천 기능
+│   ├── recommand.py           # 추천 시스템
+│   ├── requirements.txt       # 필요한 파이썬 패키지 목록
+│   ├── streamlit_app.py       # Streamlit 메인 애플리케이션
+│   └── travel.py              # 여행지 추천 기능
+├── static/                    # 정적 파일 (폰트 등)
+│   ├── OFL-SpaceGrotesk.txt
+│   ├── OFL-SpaceMono.txt
+│   ├── SpaceGrotesk-SemiBold.ttf
+│   ├── SpaceGrotesk-VariableFont_wght.ttf
+│   ├── SpaceMono-Bold.ttf
+│   ├── SpaceMono-BoldItalic.ttf
+│   ├── SpaceMono-Italic.ttf
+│   └── SpaceMono-Regular.ttf
+├── mbti_places.txt            # MBTI별 추천 여행지 데이터
+├── mbti_prompt.txt            # MBTI 프롬프트 데이터
+└── README.md                  # 프로젝트 설명 문서 
 ```
 
 ---
